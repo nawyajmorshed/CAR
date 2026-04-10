@@ -5,31 +5,24 @@ A large-scale, open-world 3D racing game built with Python using PyOpenGL, Pygam
 ## 🌍 Features
 
 ### World System
-- ✅ **Chunk-based World Loading**: Dynamic chunk loading/unloading for infinite-feeling map
 - ✅ **Large-Scale Map**: Multiple kilometers of virtual space
-- ✅ **Multiple Zones**: City (dense), Highway (fast), Rural (sparse) areas
-- ✅ **Procedurally Generated Roads**: Curved roads with elevation changes
-- ✅ **Bridges & Structures**: Elevated road segments and infrastructure
 
 ### Car Physics
-- ✅ **Advanced Physics**: Acceleration, braking, friction, drag
+- ✅ **Advanced Physics**: Acceleration, braking, friction,
 - ✅ **Smooth Steering**: LERP-based steering with speed-dependent sensitivity
-- ✅ **Terrain-Based Grip**: Different friction on road/dirt/grass
-- ✅ **Drift System**: High-speed drift effects
+- ✅ **Terrain-Based Grip**: Different friction on road
 - ✅ **Multiple Car Types**: Sports, Truck, Rally cars with unique stats
 
 ### Visual Features
 - ✅ **Modern OpenGL**: Core Profile 3.3+ rendering
 - ✅ **Phong Lighting**: Directional sunlight and ambient lighting
 - ✅ **Atmospheric Effects**: Fog rendering for distance effect
-- ✅ **Environment Objects**: Buildings, trees, street lights, billboards
 - ✅ **Dynamic Camera**: Third-person follow camera with smooth lag
 
 ### Gameplay
 - ✅ **Nitro System**: Speed boost with visual FOV effect
 - ✅ **Speed Meter**: Dynamic speed calculations
 - ✅ **Off-Road Penalties**: Reduced grip on non-road surfaces
-- ✅ **Continuous Play**: Drive long distances without boundaries
 
 ## 📋 Requirements
 
