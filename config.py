@@ -9,10 +9,16 @@ WINDOW_TITLE = "3D Racing Game - Open World"
 FPS = 60
 TARGET_DELTA = 1.0 / FPS
 
+# Graphics quality
+MSAA_SAMPLES = 4        # Multi-sample anti-aliasing (0 to disable, 2/4/8 typical)
+VSYNC = True            # Vertical sync to eliminate tearing
+
 # World settings
 CHUNK_SIZE = 500.0  # Size of each chunk
 RENDER_DISTANCE = 3  # Number of chunks in each direction to render
 MAP_SCALE = 1.0
+TRACK_LENGTH = 12000.0  # Total length of the racing track (m)
+TRACK_SEGMENT_LENGTH = 20.0  # Length of one road segment (m)
 
 # Physics
 GRAVITY = 0.0
@@ -47,14 +53,18 @@ CAMERA_MIN_DISTANCE = 8.0
 CAMERA_SHAKE_AMOUNT = 0.01
 
 # Lighting
-AMBIENT_LIGHT = 0.4
-DIRECTIONAL_LIGHT = [0.8, 0.9, 1.0]
-LIGHT_DIRECTION = [-0.2, 0.8, 0.3]
-FOG_density = 0.001
-SKY_COLOR = [0.53, 0.76, 0.98, 1.0]
+AMBIENT_LIGHT = 0.55
+DIRECTIONAL_LIGHT = [1.0, 0.98, 0.92]
+LIGHT_DIRECTION = [-0.3, 0.9, 0.4]
+FOG_ENABLED = True
+FOG_DENSITY = 0.00045        # GL_EXP2 fog density; lower = see further
+SKY_COLOR = [0.55, 0.78, 0.98, 1.0]
 
 # Road generation
-ROAD_WIDTH = 24.0
+ROAD_WIDTH = 50.0            # Width of a single lane stripe
+LANE_OFFSETS = [-25.0, 0.0, 25.0]  # X positions for the 3 lane stripes
+ROAD_HALF_SPAN = 50.0        # Distance from center to outer edge of the road
+BARRIER_OFFSET = 52.0        # X position of left/right guardrails
 ROAD_HEIGHT_VARIATION = 15.0
 NUM_ROAD_SEGMENTS = 50
 CURVE_FREQUENCY = 0.1

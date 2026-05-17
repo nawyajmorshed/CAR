@@ -231,30 +231,15 @@ class World:
         self.create_ai_cars()
     
     def create_ai_cars(self):
-        """Create 6 AI cars that race on the track"""
-        # AI Car 1 - Blue Rally Car
-        ai1 = AICar(ai_id=0, car_type='rally', lane_offset=-15, start_z=100)
-        self.ai_cars.append(ai1)
-        
-        # AI Car 2 - Yellow Sports Car
-        ai2 = AICar(ai_id=1, car_type='sports', lane_offset=-10, start_z=100)
-        self.ai_cars.append(ai2)
-        
-        # AI Car 3 - Magenta Truck (Pink) - closer to Yellow
-        ai3 = AICar(ai_id=2, car_type='truck', lane_offset=-3, start_z=100)
-        self.ai_cars.append(ai3)
-        
-        # AI Car 4 - Cyan Sports Car
-        ai4 = AICar(ai_id=3, car_type='sports', lane_offset=3, start_z=100)
-        self.ai_cars.append(ai4)
-        
-        # AI Car 5 - Orange Rally Car
-        ai5 = AICar(ai_id=4, car_type='rally', lane_offset=15, start_z=100)
-        self.ai_cars.append(ai5)
-        
-        # AI Car 6 - Purple Truck
-        ai6 = AICar(ai_id=5, car_type='truck', lane_offset=20, start_z=100)
-        self.ai_cars.append(ai6)
+        """Create 6 AI cars that race on the track, spread across the wider road."""
+        # Spread AI cars evenly across the playable width (between barriers)
+        # Barriers sit at +/- config.BARRIER_OFFSET; keep a margin of ~6m.
+        max_lateral = config.BARRIER_OFFSET - 8.0
+        offsets = np.linspace(-max_lateral, max_lateral, 6)
+        car_types = ['rally', 'sports', 'truck', 'sports', 'rally', 'truck']
+        for i, (offset, ctype) in enumerate(zip(offsets, car_types)):
+            self.ai_cars.append(
+                AICar(ai_id=i, car_type=ctype, lane_offset=float(offset), start_z=100))
     
     def generate_world(self):
         """Generate initial world"""
@@ -284,118 +269,118 @@ class World:
                 self.environment_objects.append(ground)
     
     def generate_roads(self):
-        """Generate straight highway with 3 lanes"""
+        """Generate straight highway whose width and length come from config"""
         road_id = 0
-        
-        # MAIN HIGHWAY - Straight road - 3 lanes
-        # Road starts at z=0 (car spawn) and extends forward
-        for i in range(300):
-            z_start = 0 + i * 20
-            z_end = 0 + (i + 1) * 20
-            
-            # Straight road - no curves
-            x_offset = 0
-            
-            # 3 lanes for full road width coverage
-            for lane_offset in [-8, 0, 8]:
-                start = [lane_offset + x_offset, 0, z_start]
-                end = [lane_offset + x_offset, 0, z_end]
-                
+        seg_len = config.TRACK_SEGMENT_LENGTH
+        num_segments = int(config.TRACK_LENGTH / seg_len)
+
+        # MAIN HIGHWAY - Straight road
+        for i in range(num_segments):
+            z_start = i * seg_len
+            z_end = (i + 1) * seg_len
+
+            for lane_offset in config.LANE_OFFSETS:
+                start = [lane_offset, 0, z_start]
+                end = [lane_offset, 0, z_end]
                 road = RoadSegment(road_id, start, end, config.ROAD_WIDTH, 'highway')
                 self.road_segments.append(road)
                 road_id += 1
     
     def generate_environment(self):
-        """Generate barriers on both sides of road"""
-        
-        # Start line with poles and checkered pattern
-        # Left pole for start
-        start_pole_left = EnvironmentObject('pole',
-                                           position=[-25, 2, 100],
-                                           scale=[1, 4, 1])
-        self.environment_objects.append(start_pole_left)
-        
-        # Right pole for start
-        start_pole_right = EnvironmentObject('pole',
-                                            position=[25, 2, 100],
-                                            scale=[1, 4, 1])
-        self.environment_objects.append(start_pole_right)
-        
-        # Start line (checkered pattern)
-        start_line = EnvironmentObject('start_line',
-                                      position=[0, 0.0, 100],
-                                      scale=[50, 0.1, 2])
-        self.environment_objects.append(start_line)
-        
-        # Finish line with poles and checkered pattern
-        # Left pole for finish
-        finish_pole_left = EnvironmentObject('pole',
-                                            position=[-25, 2, 5900],
-                                            scale=[1, 4, 1])
-        self.environment_objects.append(finish_pole_left)
-        
-        # Right pole for finish
-        finish_pole_right = EnvironmentObject('pole',
-                                             position=[25, 2, 5900],
-                                             scale=[1, 4, 1])
-        self.environment_objects.append(finish_pole_right)
-        
-        # Finish line (checkered pattern)
-        finish_line = EnvironmentObject('finish_line',
-                                       position=[0, 0.0, 5900],
-                                       scale=[50, 0.1, 2])
-        self.environment_objects.append(finish_line)
-        
-        # Add end wall where road meets sky (blocks cars from flying off)
-        end_wall = EnvironmentObject('barrier',
-                                    position=[0, 2.0, 5950],
-                                    scale=[50, 4.0, 1])
-        self.environment_objects.append(end_wall)
-        
-        # Add power-up balls scattered along the track
-        # green_ball (4x speed, 3 sec), red_ball (slow, 3 sec)
-        # Positions: center lane (0), left lane (-8), right lane (8)
+        """Generate barriers, markers, pickups and roadside scenery."""
+        track_len = config.TRACK_LENGTH
+        finish_z = track_len - 100.0   # leave 100m runoff before end wall
+        start_z = 100.0
+        seg_len = config.TRACK_SEGMENT_LENGTH
+        barrier_x = config.BARRIER_OFFSET
+        pole_x = barrier_x + 3.0
+        line_width = (barrier_x * 2) + 10.0  # spans the full road plus margin
+
+        # --- Start line & poles ---
+        self.environment_objects.append(
+            EnvironmentObject('pole', position=[-pole_x, 2, start_z], scale=[1, 4, 1]))
+        self.environment_objects.append(
+            EnvironmentObject('pole', position=[pole_x, 2, start_z], scale=[1, 4, 1]))
+        self.environment_objects.append(
+            EnvironmentObject('start_line', position=[0, 0.0, start_z],
+                              scale=[line_width, 0.1, 2]))
+
+        # --- Finish line & poles ---
+        self.environment_objects.append(
+            EnvironmentObject('pole', position=[-pole_x, 2, finish_z], scale=[1, 4, 1]))
+        self.environment_objects.append(
+            EnvironmentObject('pole', position=[pole_x, 2, finish_z], scale=[1, 4, 1]))
+        self.environment_objects.append(
+            EnvironmentObject('finish_line', position=[0, 0.0, finish_z],
+                              scale=[line_width, 0.1, 2]))
+
+        # End wall closes off the track
+        self.environment_objects.append(
+            EnvironmentObject('barrier', position=[0, 2.0, finish_z + 50],
+                              scale=[line_width, 4.0, 1]))
+
+        # --- Power-up balls scattered along the track ---
+        ball_lanes = config.LANE_OFFSETS  # use the same lanes the road uses
         ball_index = 0
-        for z in range(100, 5900, 300):  # Start at 100 instead of 500 for quicker pickup
-            # Green ball positions: center and lane lines (middle of road only)
-            green_positions = [0, -8, 8, 0, -8]  # Stay in middle road lanes
-            green_x = green_positions[ball_index % len(green_positions)]
+        z = int(start_z)
+        while z < finish_z - 50:
+            green_x = ball_lanes[ball_index % len(ball_lanes)]
             green_ball = EnvironmentObject('green_ball',
-                                          position=[green_x, 1.5, z + 50],  # Center lane positioning
-                                          scale=[1.5, 1.5, 1.5])  # Sphere-like
+                                           position=[green_x, 1.5, z + 50],
+                                           scale=[1.5, 1.5, 1.5])
             green_ball.collected = False
             self.environment_objects.append(green_ball)
-            
-            # Red ball positions: different from green but also in middle
-            red_positions = [-8, 0, 8, -8, 0]  # Stay in middle road lanes
-            red_x = red_positions[ball_index % len(red_positions)]
+
+            red_x = ball_lanes[(ball_index + 1) % len(ball_lanes)]
             red_ball = EnvironmentObject('red_ball',
-                                        position=[red_x, 1.5, z + 200],  # Center lane positioning
-                                        scale=[1.5, 1.5, 1.5])  # Sphere-like
+                                         position=[red_x, 1.5, z + 200],
+                                         scale=[1.5, 1.5, 1.5])
             red_ball.collected = False
             self.environment_objects.append(red_ball)
-            
+
             ball_index += 1
-        
-        # Generate barriers with reduced density for better performance
-        for i in range(299):
-            z_start = 0 + i * 20
-            z_end = 0 + (i + 1) * 20
-            
-            # Straight barriers - no curves, match road
-            x_offset = 0
-            
-            # Left barrier - thin guardrail
-            barrier_left = EnvironmentObject('barrier', 
-                                            position=[-20 + x_offset, 0.8, (z_start + z_end) / 2],
-                                            scale=[0.5, 1.6, 20])  # thin, width, height, depth
-            self.environment_objects.append(barrier_left)
-            
-            # Right barrier - thin guardrail
-            barrier_right = EnvironmentObject('barrier',
-                                            position=[20 + x_offset, 0.8, (z_start + z_end) / 2],
-                                            scale=[0.5, 1.6, 20])  # thin, width, height, depth
-            self.environment_objects.append(barrier_right)
+            z += 300
+
+        # --- Guardrails along the entire length ---
+        num_segments = int(track_len / seg_len)
+        for i in range(num_segments - 1):
+            z_mid = (i + 0.5) * seg_len
+            self.environment_objects.append(
+                EnvironmentObject('barrier',
+                                  position=[-barrier_x, 0.8, z_mid],
+                                  scale=[0.5, 1.6, seg_len]))
+            self.environment_objects.append(
+                EnvironmentObject('barrier',
+                                  position=[barrier_x, 0.8, z_mid],
+                                  scale=[0.5, 1.6, seg_len]))
+
+        # --- Roadside scenery: trees and buildings outside the barriers ---
+        # Deterministic placement so the world is reproducible.
+        rng = np.random.default_rng(seed=42)
+        scenery_step = 60.0   # one prop band every 60m of track length
+        side_min = barrier_x + 8.0
+        side_max = barrier_x + 120.0
+        num_bands = int(track_len / scenery_step)
+        for band in range(num_bands):
+            z = band * scenery_step + rng.uniform(-15, 15)
+            if z < 50 or z > track_len - 50:
+                continue
+            for sign in (-1, 1):
+                x = sign * rng.uniform(side_min, side_max)
+                # ~30% buildings, 70% trees
+                if rng.random() < 0.3:
+                    h = rng.uniform(10, 35)
+                    w = rng.uniform(8, 18)
+                    d = rng.uniform(8, 18)
+                    self.environment_objects.append(
+                        EnvironmentObject('building', position=[x, 0, z],
+                                          scale=[w, h, d]))
+                else:
+                    h = rng.uniform(5, 12)
+                    r = rng.uniform(1.0, 2.2)
+                    self.environment_objects.append(
+                        EnvironmentObject('tree', position=[x, 0, z],
+                                          scale=[r, h, r]))
     
     def update(self, car_position):
         """Update world based on car position"""

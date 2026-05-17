@@ -196,24 +196,39 @@ class Game:
         pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MAJOR_VERSION, 3)
         pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MINOR_VERSION, 3)
         pygame.display.gl_set_attribute(pygame.GL_CONTEXT_PROFILE_MASK, pygame.GL_CONTEXT_PROFILE_COMPATIBILITY)
-        
+
+        # Request MSAA before the GL context exists - this is the only place it works.
+        if getattr(config, 'MSAA_SAMPLES', 0) > 0:
+            try:
+                pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLEBUFFERS, 1)
+                pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLESAMPLES, config.MSAA_SAMPLES)
+            except Exception as e:
+                print(f"Warning: Could not request MSAA: {e}")
+
         pygame.display.set_mode(
             (config.WINDOW_WIDTH, config.WINDOW_HEIGHT),
             DOUBLEBUF | OPENGL
         )
         pygame.display.set_caption(config.WINDOW_TITLE)
-        
+
         # Request focus for the window
         pygame.event.clear()
-        
+
         # Small delay to ensure window is ready
         time.sleep(0.5)
-        
+
         # Setup OpenGL context
         try:
             gl.glEnable(gl.GL_MULTISAMPLE)
         except Exception as e:
             print(f"Warning: Could not enable multisample: {e}")
+
+        # VSync eliminates tearing and gives smoother frame pacing.
+        if getattr(config, 'VSYNC', True):
+            try:
+                pygame.display.gl_set_swap_interval(1)
+            except Exception as e:
+                print(f"Warning: Could not enable VSync: {e}")
         
         # Game mode (multiplayer or singleplayer)
         self.game_mode = game_mode
@@ -251,9 +266,9 @@ class Game:
         self.countdown_timer = 2.0
         self.race_started = False
         
-        # Race finish tracking
+        # Race finish tracking - keep this in sync with world.generate_environment.
         self.finish_positions = []  # List of cars that finished
-        self.finish_line_z = 5900  # Finish line position
+        self.finish_line_z = config.TRACK_LENGTH - 100.0
         self.race_ended = False  # Track if race is complete
         self.race_end_timer = 0  # Timer for race ending delay
         

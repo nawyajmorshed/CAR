@@ -29,18 +29,58 @@ class SimpleRenderer:
         print("✓ Optimized renderer initialized with cached geometry")
     
     def setup_opengl(self):
-        """Setup basic OpenGL"""
-        gl.glClearColor(*config.SKY_COLOR)
+        """Setup OpenGL: depth, smooth shading, lighting, fog, MSAA, culling."""
+        sky = config.SKY_COLOR
+        gl.glClearColor(*sky)
         gl.glEnable(gl.GL_DEPTH_TEST)
+        gl.glDepthFunc(gl.GL_LEQUAL)
+
+        # Smooth shading + correct perspective + smoothed lines = far less aliasing.
+        gl.glShadeModel(gl.GL_SMOOTH)
+        gl.glEnable(gl.GL_NORMALIZE)
+        gl.glHint(gl.GL_PERSPECTIVE_CORRECTION_HINT, gl.GL_NICEST)
+        gl.glHint(gl.GL_LINE_SMOOTH_HINT, gl.GL_NICEST)
+        gl.glHint(gl.GL_POLYGON_SMOOTH_HINT, gl.GL_NICEST)
+        gl.glEnable(gl.GL_LINE_SMOOTH)
+        gl.glEnable(gl.GL_BLEND)
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+
+        # Back-face culling - cheap perf win for opaque geometry.
+        gl.glEnable(gl.GL_CULL_FACE)
+        gl.glCullFace(gl.GL_BACK)
+        gl.glFrontFace(gl.GL_CCW)
+
+        # Try to enable MSAA (was requested at context-creation time in main.py).
+        try:
+            gl.glEnable(gl.GL_MULTISAMPLE)
+        except Exception:
+            pass
+
+        # Lighting: ambient sky + directional sun light.
         gl.glEnable(gl.GL_LIGHTING)
         gl.glEnable(gl.GL_LIGHT0)
         gl.glEnable(gl.GL_COLOR_MATERIAL)
         gl.glColorMaterial(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT_AND_DIFFUSE)
-        
-        # Setup light
-        gl.glLight(gl.GL_LIGHT0, gl.GL_POSITION, (1, 1, 1, 0))
-        gl.glLight(gl.GL_LIGHT0, gl.GL_AMBIENT, (0.4, 0.4, 0.4, 1))
-        gl.glLight(gl.GL_LIGHT0, gl.GL_DIFFUSE, (0.8, 0.8, 0.8, 1))
+
+        ambient = config.AMBIENT_LIGHT
+        gl.glLightModelfv(gl.GL_LIGHT_MODEL_AMBIENT,
+                          (ambient, ambient, ambient * 1.05, 1.0))
+
+        ld = config.LIGHT_DIRECTION
+        # Directional light: position w=0 means "at infinity along this direction".
+        gl.glLight(gl.GL_LIGHT0, gl.GL_POSITION, (ld[0], ld[1], ld[2], 0.0))
+        dl = config.DIRECTIONAL_LIGHT
+        gl.glLight(gl.GL_LIGHT0, gl.GL_AMBIENT, (0.25, 0.25, 0.28, 1.0))
+        gl.glLight(gl.GL_LIGHT0, gl.GL_DIFFUSE, (dl[0], dl[1], dl[2], 1.0))
+        gl.glLight(gl.GL_LIGHT0, gl.GL_SPECULAR, (0.6, 0.6, 0.6, 1.0))
+
+        # Atmospheric fog blends distant geometry into the sky.
+        if getattr(config, 'FOG_ENABLED', True):
+            gl.glEnable(gl.GL_FOG)
+            gl.glFogi(gl.GL_FOG_MODE, gl.GL_EXP2)
+            gl.glFogfv(gl.GL_FOG_COLOR, (sky[0], sky[1], sky[2], 1.0))
+            gl.glFogf(gl.GL_FOG_DENSITY, config.FOG_DENSITY)
+            gl.glHint(gl.GL_FOG_HINT, gl.GL_NICEST)
     
     def clear(self):
         """Clear screen"""
